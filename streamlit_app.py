@@ -3,212 +3,155 @@ import pandas as pd
 
 # ---------- PAGE CONFIG ----------
 st.set_page_config(
-    page_title="Web Clarity, Empathy & Accessibility Check",
-    page_icon="♿",
+    page_title="PenTrust · Healthcare Content Clarity Analyzer",
+    page_icon="✏️",
     layout="wide",
 )
 
 # ---------- GLOBAL STYLES ----------
-st.markdown(
-    """
+st.markdown("""
 <style>
 :root {
-  --purple-900: #1E1035;
-  --purple-700: #3D2B7A;
-  --purple-500: #6D4DE6;
-  --purple-soft: #F4EEFF;
-  --amber-400:  #FBBF24;
-  --green-500:  #16A34A;
-  --red-500:    #DC2626;
+  --primary-yellow: #F9D342;  /* Primary */
+  --primary-amber:  #F59E0B;  /* Secondary */
+  --accent-blue:    #2563EB;  /* Tertiary / Accent */
 }
 
-/* Base layout */
+/* Page background + base */
 body, .stApp {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
-               "Segoe UI", sans-serif;
-  background: radial-gradient(circle at top left, #F4EEFF 0, #F7F7FB 45%, #FFFFFF 100%);
+  font-family: "Georgia", "Times New Roman", serif;
+  background-color: #F7F7FB;
 }
 
-/* Tighten main container a bit */
+/* Main container padding */
 .block-container {
-  padding-top: 1.2rem;
-  padding-bottom: 2.2rem;
+  padding-top: 1.4rem;
 }
 
 /* Buttons */
 .stButton>button {
-  background: var(--purple-500);
-  color: #FFFFFF;
+  background-color: var(--accent-blue);
+  color: white;
   border-radius: 999px;
-  padding: 0.5rem 1.6rem;
+  padding: 0.45rem 1.5rem;
   border: none;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  font-size: 0.95rem;
 }
 .stButton>button:hover {
-  background: var(--purple-700);
+  background-color: #1E48A8;
 }
 
-/* Section title */
+/* Section title underline */
 .section-title {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--purple-700);
-  margin-bottom: 0.3rem;
+  margin: 0 0 0.4rem 0;
+  letter-spacing: 0.02em;
 }
-.section-kicker {
-  font-size: 0.8rem;
+.section-title span {
+  border-bottom: 4px solid var(--primary-amber);
+  padding-bottom: 4px;
+}
+
+/* Sub label (small overlines) */
+.overline {
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
   color: #6B7280;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
 }
 
-/* Hero card */
-.hero-card {
-  background: linear-gradient(135deg, var(--purple-900) 0%, #4C1D95 40%, #7C3AED 100%);
-  color: white;
-  border-radius: 18px;
-  padding: 22px 24px;
-  box-shadow: 0 14px 40px rgba(15,23,42,0.35);
-}
-.hero-title {
-  font-size: 1.6rem;
-  font-weight: 650;
-  margin-bottom: 0.25rem;
-}
-.hero-subtitle {
-  font-size: 0.98rem;
-  color: #E5E7EB;
-}
-
-/* Generic cards */
+/* Cards */
 .card {
-  background: #FFFFFF;
+  background: white;
   border-radius: 16px;
   padding: 18px 20px;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
-  margin-bottom: 1rem;
+  box-shadow: 0px 4px 12px rgba(0,0,0,0.06);
+  margin-bottom: 1.0rem;
 }
-.card-soft {
-  background: var(--purple-soft);
+.card-border-amber {
+  border-left: 5px solid var(--primary-amber);
+}
+.soft-card {
+  background: #FFF8E2;
   border-radius: 16px;
   padding: 16px 18px;
-  margin-bottom: 1rem;
-}
-.card-border {
-  border-left: 5px solid var(--purple-500);
+  margin-bottom: 1.0rem;
+  border: 1px solid rgba(245,158,11,0.2);
 }
 
-/* KPI tiles */
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.9rem;
+/* Pills / tags */
+.pill {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(37,99,235,0.08);
+  font-size: 0.75rem;
+  color: #1F2937;
 }
-.kpi {
-  background: #FFFFFF;
+
+/* Tiny badge top right */
+.badge-top-right {
+  position: absolute;
+  top: 12px;
+  right: 18px;
+  background: rgba(37,99,235,0.10);
+  color: #1E40AF;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+}
+
+/* Metric cards tweak */
+[data-testid="stMetric"] {
+  background: white;
   border-radius: 14px;
-  padding: 0.7rem 0.9rem;
-  box-shadow: 0 6px 18px rgba(15,23,42,0.05);
+  padding: 12px 14px;
+  box-shadow: 0px 2px 8px rgba(0,0,0,0.05);
 }
-.kpi-label {
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: #6B7280;
-}
-.kpi-value {
-  font-size: 1.3rem;
-  font-weight: 650;
-  margin-top: 0.15rem;
-}
-.kpi-meta {
+
+/* Small helper text */
+.helper-text {
   font-size: 0.8rem;
   color: #6B7280;
 }
-
-/* Pills */
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.17rem 0.7rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-.pill-demo {
-  background: rgba(55,65,81,0.18);
-  color: #111827;
-}
-.pill-pass {
-  background: rgba(22,163,74,0.12);
-  color: var(--green-500);
-}
-.pill-risk {
-  background: rgba(220,38,38,0.08);
-  color: var(--red-500);
-}
-
-/* Divider label */
-.divider-label {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  margin: 1.2rem 0 0.5rem 0;
-}
-.divider-label hr {
-  flex: 1;
-  border: none;
-  border-top: 1px solid #E5E7EB;
-}
-
-/* Recommendation bullets */
-.reco-list li {
-  margin-bottom: 0.15rem;
-}
-
-/* Make select + textarea labels cleaner */
-label {
-  font-weight: 500 !important;
-}
 </style>
-""",
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
 # ---------- TITLE / HERO ----------
-hero_left, hero_right = st.columns([2.7, 1.3])
+hero_col1, hero_col2 = st.columns([2.6, 1.4])
 
-with hero_left:
+with hero_col1:
     st.markdown(
-        """
-        <div class="hero-card">
-          <div class="section-kicker">Madison · Healthcare-inspired UX</div>
-          <div class="hero-title">Web Clarity, Empathy & Accessibility Check</div>
-          <p class="hero-subtitle">
-            A concept dashboard that treats your marketing pages like a patient:
-            checking whether the language is clear, supportive, and friendly to assistive tech.
-          </p>
-          <div style="margin-top: 0.6rem; font-size:0.8rem; color:#E5E7EB;">
-            Paste 1–5 URLs and see a Madison-style snapshot. This version uses demo scores for the assignment.
-          </div>
-        </div>
-        """,
+        '<div class="overline">Madison · Branding & AI Prototype</div>',
         unsafe_allow_html=True,
     )
+    st.markdown(
+        '<div class="section-title"><span>✏️ PenTrust – Healthcare Content Clarity Analyzer</span></div>',
+        unsafe_allow_html=True,
+    )
+    st.write(
+        "PenTrust is a demo interface for an AI-assisted text analyzer that helps UX and "
+        "healthcare teams review content for **clarity, tone safety, readability, and trust signals**. "
+        "Paste a few URLs or page labels to simulate how a content audit dashboard could look."
+    )
 
-with hero_right:
+with hero_col2:
     st.markdown(
         """
-        <div class="card-soft">
-          <b>How this relates to steffimanhalli.com</b><br><br>
-          • Inspired by the AudioEye scan you ran<br>
-          • Focus on WCAG-style flags + empathy<br>
-          • Designed to sit inside your portfolio as an
-            explorable <i>“assessment layer”</i> on top of your site
+        <div class="card" style="position:relative;">
+          <div class="badge-top-right">AI-assisted · Demo only</div>
+          <b>Who this helps</b><br><br>
+          • UX & product designers<br>
+          • Content / UX writers<br>
+          • Clinicians & care teams<br>
+          • Ops / compliance leaders<br><br>
+          <span class="helper-text">
+          Manually reviewing thousands of lines of text is unrealistic. PenTrust imagines
+          how AI text analysis could surface clarity issues early, before they become
+          support calls, safety risks, or rework.
+          </span>
         </div>
         """,
         unsafe_allow_html=True,
@@ -216,269 +159,237 @@ with hero_right:
 
 st.markdown("")
 
-# ---------- INPUT PANEL ----------
-input_col, info_col = st.columns([2, 1])
+# ---------- INPUT + TOOL INFO ----------
+left, right = st.columns([1.8, 1.2])
 
-with input_col:
-    st.markdown('<div class="section-title">Input URLs to review</div>', unsafe_allow_html=True)
-    urls_text = st.text_area(
-        "Paste one URL per line",
-        placeholder="https://steffimanhalli.com/\nhttps://example.com/page-1",
-        height=140,
+with left:
+    st.markdown('<div class="section-title"><span>Input content</span></div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="helper-text">'
+        'For this prototype, you can paste one or more URLs or short page labels '
+        '(e.g., “Billing portal”, “Discharge instructions”). The analysis is mocked '
+        'so you can focus on the UX and storytelling.'
+        '</div>',
+        unsafe_allow_html=True,
     )
-    run_button = st.button("Run demo analysis")
+    urls_text = st.text_area(
+        "",
+        placeholder="https://example.com/billing\nTest results page\nOnboarding – older adults",
+        height=150,
+    )
+    run_button = st.button("Run PenTrust analysis")
 
-with info_col:
-    st.markdown('<div class="section-title">What this demo simulates</div>', unsafe_allow_html=True)
+with right:
+    st.markdown('<div class="section-title"><span>What PenTrust checks</span></div>', unsafe_allow_html=True)
     st.markdown(
         """
         <div class="card">
-        • A quick, non-clinical read on:<br>
-        &nbsp;&nbsp;– Plain-language clarity<br>
-        &nbsp;&nbsp;– Tone & empathy<br>
-        &nbsp;&nbsp;– Simple accessibility health check<br><br>
-        • The real version would:<br>
-        &nbsp;&nbsp;– Call a Madison/n8n workflow<br>
-        &nbsp;&nbsp;– Use LLM prompts tuned for health comms<br>
-        &nbsp;&nbsp;– Log results into a Google Sheet for trends
+        <b>Clarity & structure</b><br>
+        • Readability + sentence length<br>
+        • Information hierarchy & “what to do next”<br><br>
+
+        <b>Tone & emotional safety</b><br>
+        • High-anxiety or harsh phrasing<br>
+        • Overly clinical language in patient areas<br><br>
+
+        <b>Accessibility & trust signals</b><br>
+        • Dense paragraphs / visual stress<br>
+        • Jargon vs. plain language<br>
+        • Consistency of terms across flows
         </div>
         """,
         unsafe_allow_html=True,
     )
     st.info(
-        "For Assignment 9, the scores below are mocked so the interface can be evaluated "
-        "without exposing any private API keys."
+        "In a real deployment, this UI would call an AI text analysis backend (e.g., "
+        "Madison + n8n + LLM) and log results to a sheet or database. "
+        "Here, the results are demo data to support your case study."
     )
 
-# ---------- DUMMY ANALYSIS ----------
+# ---------- DUMMY ANALYSIS (REPLACE WITH REAL API LATER) ----------
 def analyze_url_dummy(url: str) -> dict:
-    """
-    Demo-only analysis so the UI can be graded.
-    This is where you’d plug in your actual Madison pipeline later.
-    """
+    """Demo analysis so the UI works even without a backend."""
     return {
         "url": url,
+        # Core analysis – these are placeholders
         "empathy_score": "Medium",
         "clarity_score": "High",
-        "wcag_status": "Not compliant (demo)",
+        "wcag_status": "Pass (AA demo)",
         "visual_schema": "Content-heavy layout",
         "summary": (
-            "Demo summary: content is generally clear but may be hard for some users "
-            "with low literacy or visual stress. Headings and spacing can do more work."
+            "Demo summary: content is generally clear but could be simplified "
+            "for low-literacy readers and busy clinicians."
         ),
         "rewrite_suggestion": (
-            "Shorten dense paragraphs, replace jargon with everyday words, and add "
-            "lead-in headings like “In simple terms” or “What you should do next”."
+            "Shorten long sentences, remove jargon, and add a short 'What this means for you' "
+            "section with clear next steps."
         ),
+        # Healthcare-inspired UX checks (non-clinical)
         "low_literacy_note": (
-            "Several long sentences; consider aiming for ~8–10 words per line and "
-            "simpler phrasing."
+            "Contains a few long, complex sentences. Consider breaking them up and using "
+            "simpler vocabulary."
         ),
         "tone_safety_note": (
-            "Tone is informational and neutral. You could add a short validating phrase "
-            "to sound more human (“It’s okay if this feels confusing at first…”)."
+            "Tone is mostly neutral. Review for phrases that may sound alarming in sensitive contexts."
         ),
         "hierarchy_note": (
-            "Main call-to-action is visible, but secondary content could be grouped into "
-            "scannable sections with subheadings and bullets."
+            "Key actions could be surfaced more clearly using headings, bullets, or step-by-step structure."
         ),
         "visual_stress_note": (
-            "Minimal whitespace around body text. Slightly larger line-height and "
-            "extra spacing between sections would help."
+            "Several dense blocks of text. Extra spacing and subheadings would reduce visual fatigue."
         ),
         "recommendations": [
-            "Introduce a clear first heading that states the page’s purpose in plain language.",
-            "Break large text blocks into smaller paragraphs and bullet lists.",
-            "Ensure links describe their destination (avoid “click here”).",
-            "Add descriptive titles or aria-labels for icons and meaningful SVGs.",
+            "Break long paragraphs into 2–3 shorter ones with clear headings.",
+            "Replace medical jargon with patient- and clinician-friendly terms where possible.",
+            "Add explicit 'What to do next' sections for critical flows (billing, results, follow-up).",
         ],
     }
 
-# ---------- RUN ANALYSIS ----------
+# ---------- MAIN ACTION ----------
 results = []
 df = None
 
 if run_button:
-    urls = [u.strip() for u in urls_text.splitlines() if u.strip()]
-    if not urls:
-        st.warning("Please paste at least one URL to analyze.")
-    else:
-        for url in urls:
-            results.append(analyze_url_dummy(url))
+    urls = []
+    if urls_text.strip():
+        urls = [u.strip() for u in urls_text.splitlines() if u.strip()]
 
+    if not urls:
+        st.warning("Please paste at least one URL or page label.")
+    else:
+        st.success(f"Running demo PenTrust analysis for {len(urls)} item(s)…")
+
+        for url in urls:
+            data = analyze_url_dummy(url)
+            results.append(data)
+
+        # Build summary df
         df_rows = []
         for item in results:
-            df_rows.append(
-                {
-                    "URL": item["url"],
-                    "Empathy": item["empathy_score"],
-                    "Clarity": item["clarity_score"],
-                    "WCAG status": item["wcag_status"],
-                    "Layout": item["visual_schema"],
-                }
-            )
+            df_rows.append({
+                "Page / URL": item.get("url", ""),
+                "Empathy": item.get("empathy_score", ""),
+                "Clarity": item.get("clarity_score", ""),
+                "WCAG": item.get("wcag_status", ""),
+                "Visual schema": item.get("visual_schema", ""),
+            })
         df = pd.DataFrame(df_rows)
 
-# ---------- RESULTS LAYER ----------
+# ---------- RESULTS UI (ONLY IF WE HAVE RESULTS) ----------
 if results and df is not None:
-    st.markdown("<div class='divider-label'><span class='section-title'>Snapshot</span><hr></div>",
-                unsafe_allow_html=True)
 
+    st.markdown("---")
+    st.markdown('<div class="section-title"><span>📊 PenTrust snapshot</span></div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="helper-text">High-level view of how your pages are doing on clarity, tone, and basic accessibility (demo data).</div>',
+        unsafe_allow_html=True,
+    )
+
+    # High-level metrics
     total_urls = len(df)
+    score_map = {"Low": 1, "Medium": 2, "High": 3}
+
     high_clarity = (df["Clarity"] == "High").sum()
     good_empathy = df["Empathy"].isin(["Medium", "High"]).sum()
-    # Any page that contains "Not compliant" is treated as at-risk in this demo
-    at_risk = df["WCAG status"].str.contains("Not compliant", case=False).sum()
+    wcag_pass = df["WCAG"].str.contains("Pass").sum()
 
-    st.markdown(
-        f"""
-        <div class="card card-border">
-          <span class="pill pill-demo">Demo data • Madison concept</span><br><br>
-          <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:1rem; flex-wrap:wrap;">
-            <div>
-              <div style="font-size:1.05rem; font-weight:600; color:var(--purple-700);">
-                Accessibility & empathy snapshot for {total_urls} page(s)
-              </div>
-              <div style="font-size:0.85rem; color:#4B5563; margin-top:0.2rem;">
-                Treat this as a design conversation starter, not a legal compliance report.
-              </div>
-            </div>
-            <div>
-              <span class="pill pill-risk">{at_risk} page(s) flagged as “Not compliant (demo)”</span>
-            </div>
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Pages analyzed", total_urls)
+    m2.metric("High clarity", f"{high_clarity}/{total_urls}")
+    m3.metric("Supportive tone (Med/High)", f"{good_empathy}/{total_urls}")
+    m4.metric("WCAG pass (demo)", f"{wcag_pass}/{total_urls}")
 
-    # KPI row
-    st.markdown(
-        """
-        <div class="kpi-grid">
-          <div class="kpi">
-            <div class="kpi-label">URLs analyzed</div>
-            <div class="kpi-value">{total}</div>
-            <div class="kpi-meta">Per run</div>
-          </div>
-          <div class="kpi">
-            <div class="kpi-label">High clarity pages</div>
-            <div class="kpi-value">{clarity}/{total}</div>
-            <div class="kpi-meta">“High” label in demo scoring</div>
-          </div>
-          <div class="kpi">
-            <div class="kpi-label">Supportive tone (Med/High)</div>
-            <div class="kpi-value">{empathy}/{total}</div>
-            <div class="kpi-meta">Pages unlikely to feel harsh</div>
-          </div>
-          <div class="kpi">
-            <div class="kpi-label">WCAG risk (demo)</div>
-            <div class="kpi-value">{risk}</div>
-            <div class="kpi-meta">Pages marked “Not compliant (demo)”</div>
-          </div>
-        </div>
-        """.format(
-            total=total_urls,
-            clarity=high_clarity,
-            empathy=good_empathy,
-            risk=at_risk,
-        ),
-        unsafe_allow_html=True,
-    )
-
-    # Table + bar chart
-    st.markdown("<div class='divider-label'><span class='section-title'>Table & trend view</span><hr></div>",
-                unsafe_allow_html=True)
-
-    with st.expander("View page-by-page table"):
+    # Summary table in a card
+    with st.expander("View summary table"):
         st.dataframe(df, use_container_width=True)
 
-    score_map = {"Low": 1, "Medium": 2, "High": 3}
+    # Clarity vs Empathy chart
+    st.markdown('<div class="section-title"><span>🧠 Clarity vs tone safety</span></div>', unsafe_allow_html=True)
+
     chart_df = df.copy()
     chart_df["Clarity score"] = chart_df["Clarity"].map(score_map)
     chart_df["Empathy score"] = chart_df["Empathy"].map(score_map)
-    chart_df = chart_df.set_index("URL")[["Clarity score", "Empathy score"]]
+    chart_df = chart_df.set_index("Page / URL")[["Clarity score", "Empathy score"]]
 
-    st.bar_chart(chart_df, use_container_width=True)
+    st.bar_chart(chart_df)
 
-    # ---------- DEEP DIVE ----------
-    st.markdown("<div class='divider-label'><span class='section-title'>Deep dive</span><hr></div>",
-                unsafe_allow_html=True)
+    # ---------- PAGE DEEP-DIVE ----------
+    st.markdown("---")
+    st.markdown('<div class="section-title"><span>🔍 Page deep-dive</span></div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="helper-text">Select one item to see the kind of AI guidance PenTrust could provide to designers, writers, and clinical teams.</div>',
+        unsafe_allow_html=True,
+    )
 
     selected_url = st.selectbox(
-        "Choose a page to see detailed notes",
-        df["URL"].tolist(),
+        "Select a page / URL to view detailed insights:",
+        df["Page / URL"].tolist()
     )
+
     selected_item = next(item for item in results if item["url"] == selected_url)
 
-    colA, colB = st.columns([1.2, 1])
+    colA, colB = st.columns(2)
 
     with colA:
         st.markdown(
             f"""
-            <div class="card">
-              <div style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.14em; color:#6B7280;">
-                Page overview
-              </div>
-              <div style="font-size:0.95rem; font-weight:600; color:var(--purple-700); margin-top:0.15rem;">
-                {selected_item["url"]}
-              </div>
-              <div style="margin-top:0.6rem; font-size:0.9rem;">
-                <b>Empathy:</b> {selected_item["empathy_score"]}<br>
-                <b>Clarity:</b> {selected_item["clarity_score"]}<br>
-                <b>WCAG status (demo):</b> {selected_item["wcag_status"]}<br>
-                <b>Layout pattern:</b> {selected_item["visual_schema"]}
-              </div>
+            <div class="card card-border-amber">
+            <h4>Core metrics</h4>
+            <b>Page / URL:</b> {selected_item["url"]}<br><br>
+            <b>Empathy / tone:</b> {selected_item["empathy_score"]}<br>
+            <b>Clarity:</b> {selected_item["clarity_score"]}<br>
+            <b>WCAG status:</b> {selected_item["wcag_status"]}<br>
+            <b>Visual layout:</b> {selected_item["visual_schema"]}
             </div>
             """,
-            unsafe_allow_html=True,
+            unsafe_allow_html=True
         )
 
         st.markdown(
             f"""
-            <div class="card-soft">
-              <b>Quick narrative summary</b><br><br>
-              {selected_item["summary"]}
+            <div class="soft-card">
+            <h4>Summary</h4>
+            {selected_item["summary"]}
             </div>
             """,
-            unsafe_allow_html=True,
+            unsafe_allow_html=True
         )
 
     with colB:
         st.markdown(
             f"""
             <div class="card">
-              <div class="section-title" style="margin-bottom:0.4rem;">AI rewrite direction</div>
-              <div style="font-size:0.9rem;">
-                {selected_item["rewrite_suggestion"]}
-              </div>
+            <h4>AI rewrite suggestion</h4>
+            {selected_item["rewrite_suggestion"]}
+            <p class="helper-text">
+            In a real system, this could be exported to Figma, a CMS, or handed off in tickets.
+            </p>
             </div>
             """,
-            unsafe_allow_html=True,
+            unsafe_allow_html=True
         )
 
     st.markdown(
         f"""
         <div class="card">
-          <div class="section-title" style="margin-bottom:0.6rem;">Healthcare-inspired UX lenses</div>
-          <ul class="reco-list" style="font-size:0.9rem;">
-            <li><b>Low-literacy friendliness:</b> {selected_item["low_literacy_note"]}</li>
-            <li><b>Tone safety:</b> {selected_item["tone_safety_note"]}</li>
-            <li><b>Information hierarchy:</b> {selected_item["hierarchy_note"]}</li>
-            <li><b>Visual stress:</b> {selected_item["visual_stress_note"]}</li>
-          </ul>
+        <h4>🩺 Healthcare & UX indicators</h4>
+        <b>Low-literacy friendliness:</b> {selected_item["low_literacy_note"]}<br><br>
+        <b>Tone safety:</b> {selected_item["tone_safety_note"]}<br><br>
+        <b>Information hierarchy:</b> {selected_item["hierarchy_note"]}<br><br>
+        <b>Visual stress:</b> {selected_item["visual_stress_note"]}
         </div>
         """,
-        unsafe_allow_html=True,
+        unsafe_allow_html=True
     )
 
-    st.markdown("#### Recommended next moves")
+    st.markdown("### ✅ Recommendations for the team")
     for r in selected_item.get("recommendations", []):
         st.markdown(f"- {r}")
 
 # ---------- FOOTER ----------
 st.markdown("---")
 st.markdown(
-    "Back to portfolio → [steffimanhalli.com](https://steffimanhalli.com)  ·  "
-    "This demo was built for INFO 7375 · Madison / Branding & AI."
+    "Made as part of my Branding & AI course · PenTrust demo UI · "
+    "Back to my portfolio: [steffimanhalli.com](https://steffimanhalli.com)"
 )
+
