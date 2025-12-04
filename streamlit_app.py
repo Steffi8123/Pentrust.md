@@ -167,8 +167,8 @@ with left:
     st.markdown(
         '<div class="helper-text">'
         'For this prototype, you can paste one or more URLs or short page labels '
-        '(e.g., “Billing portal”, “Discharge instructions”). The analysis is mocked '
-        'so you can focus on the UX and storytelling.'
+        '(e.g., “Billing portal”, “Discharge instructions”, “Alert screen – ICU”). '
+        'The analysis is mocked so you can focus on the UX and storytelling.'
         '</div>',
         unsafe_allow_html=True,
     )
@@ -184,18 +184,18 @@ with right:
     st.markdown(
         """
         <div class="card">
-        <b>Clarity & structure</b><br>
-        • Readability + sentence length<br>
-        • Information hierarchy & “what to do next”<br><br>
+        <b>1. Pain points & friction</b><br>
+        • Confusing instructions or missing next steps<br>
+        • Overloaded alerts and dense paragraphs<br><br>
 
-        <b>Tone & emotional safety</b><br>
-        • High-anxiety or harsh phrasing<br>
-        • Overly clinical language in patient areas<br><br>
+        <b>2. Clinical & safety context</b><br>
+        • High-risk wording in critical flows<br>
+        • Signals of alert fatigue in copy<br><br>
 
-        <b>Accessibility & trust signals</b><br>
-        • Dense paragraphs / visual stress<br>
+        <b>3. Trust & engagement</b><br>
         • Jargon vs. plain language<br>
-        • Consistency of terms across flows
+        • Tone for patients vs. clinicians<br>
+        • Transparency & explanation cues
         </div>
         """,
         unsafe_allow_html=True,
@@ -209,20 +209,45 @@ with right:
 # ---------- DUMMY ANALYSIS (REPLACE WITH REAL API LATER) ----------
 def analyze_url_dummy(url: str) -> dict:
     """Demo analysis so the UI works even without a backend."""
+    # Simple rules to vary things a bit by URL label
+    url_lower = url.lower()
+    if "alert" in url_lower or "icu" in url_lower:
+        risk = "High"
+        category = "Alert fatigue / safety"
+        empathy = "Medium"
+        clarity = "Medium"
+    elif "billing" in url_lower or "payment" in url_lower:
+        risk = "Medium"
+        category = "Readability & trust"
+        empathy = "Medium"
+        clarity = "High"
+    elif "results" in url_lower or "discharge" in url_lower:
+        risk = "High"
+        category = "Patient comprehension"
+        empathy = "High"
+        clarity = "Medium"
+    else:
+        risk = "Low"
+        category = "General readability"
+        empathy = "Medium"
+        clarity = "High"
+
     return {
         "url": url,
-        # Core analysis – these are placeholders
-        "empathy_score": "Medium",
-        "clarity_score": "High",
+        "risk_level": risk,
+        "issue_category": category,
+        # Core analysis
+        "empathy_score": empathy,
+        "clarity_score": clarity,
         "wcag_status": "Pass (AA demo)",
         "visual_schema": "Content-heavy layout",
         "summary": (
-            "Demo summary: content is generally clear but could be simplified "
-            "for low-literacy readers and busy clinicians."
+            "Demo summary: content is generally understandable, but key concepts could be "
+            "surfaced more clearly for busy clinicians and patients with lower health literacy."
         ),
         "rewrite_suggestion": (
             "Shorten long sentences, remove jargon, and add a short 'What this means for you' "
-            "section with clear next steps."
+            "section with bullet-point next steps."
         ),
         # Healthcare-inspired UX checks (non-clinical)
         "low_literacy_note": (
@@ -268,6 +293,8 @@ if run_button:
         for item in results:
             df_rows.append({
                 "Page / URL": item.get("url", ""),
+                "Risk level": item.get("risk_level", ""),
+                "Issue category": item.get("issue_category", ""),
                 "Empathy": item.get("empathy_score", ""),
                 "Clarity": item.get("clarity_score", ""),
                 "WCAG": item.get("wcag_status", ""),
@@ -281,7 +308,7 @@ if results and df is not None:
     st.markdown("---")
     st.markdown('<div class="section-title"><span>📊 PenTrust snapshot</span></div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="helper-text">High-level view of how your pages are doing on clarity, tone, and basic accessibility (demo data).</div>',
+        '<div class="helper-text">High-level view of where your biggest content risks and UX opportunities are (demo data).</div>',
         unsafe_allow_html=True,
     )
 
@@ -292,16 +319,24 @@ if results and df is not None:
     high_clarity = (df["Clarity"] == "High").sum()
     good_empathy = df["Empathy"].isin(["Medium", "High"]).sum()
     wcag_pass = df["WCAG"].str.contains("Pass").sum()
+    high_risk = (df["Risk level"] == "High").sum()
 
-    m1, m2, m3, m4 = st.columns(4)
+    m1, m2, m3, m4, m5 = st.columns(5)
     m1.metric("Pages analyzed", total_urls)
-    m2.metric("High clarity", f"{high_clarity}/{total_urls}")
-    m3.metric("Supportive tone (Med/High)", f"{good_empathy}/{total_urls}")
-    m4.metric("WCAG pass (demo)", f"{wcag_pass}/{total_urls}")
+    m2.metric("High-risk items", high_risk)
+    m3.metric("High clarity", f"{high_clarity}/{total_urls}")
+    m4.metric("Supportive tone (Med/High)", f"{good_empathy}/{total_urls}")
+    m5.metric("WCAG pass (demo)", f"{wcag_pass}/{total_urls}")
 
     # Summary table in a card
     with st.expander("View summary table"):
         st.dataframe(df, use_container_width=True)
+
+    # Issue categories chart
+    st.markdown('<div class="section-title"><span>🧩 Issues by category</span></div>', unsafe_allow_html=True)
+    cat_counts = df["Issue category"].value_counts().reset_index()
+    cat_counts.columns = ["Issue category", "Count"]
+    st.bar_chart(cat_counts.set_index("Issue category"))
 
     # Clarity vs Empathy chart
     st.markdown('<div class="section-title"><span>🧠 Clarity vs tone safety</span></div>', unsafe_allow_html=True)
@@ -336,6 +371,8 @@ if results and df is not None:
             <div class="card card-border-amber">
             <h4>Core metrics</h4>
             <b>Page / URL:</b> {selected_item["url"]}<br><br>
+            <b>Risk level:</b> {selected_item["risk_level"]}<br>
+            <b>Issue category:</b> {selected_item["issue_category"]}<br><br>
             <b>Empathy / tone:</b> {selected_item["empathy_score"]}<br>
             <b>Clarity:</b> {selected_item["clarity_score"]}<br>
             <b>WCAG status:</b> {selected_item["wcag_status"]}<br>
@@ -348,7 +385,7 @@ if results and df is not None:
         st.markdown(
             f"""
             <div class="soft-card">
-            <h4>Summary</h4>
+            <h4>Summary (UX + clinical context)</h4>
             {selected_item["summary"]}
             </div>
             """,
@@ -362,7 +399,8 @@ if results and df is not None:
             <h4>AI rewrite suggestion</h4>
             {selected_item["rewrite_suggestion"]}
             <p class="helper-text">
-            In a real system, this could be exported to Figma, a CMS, or handed off in tickets.
+            In a real system, this could feed into UX writing, design tickets, or a CMS workflow
+            so teams can iterate quickly.
             </p>
             </div>
             """,
@@ -392,4 +430,3 @@ st.markdown(
     "Made as part of my Branding & AI course · PenTrust demo UI · "
     "Back to my portfolio: [steffimanhalli.com](https://steffimanhalli.com)"
 )
-
