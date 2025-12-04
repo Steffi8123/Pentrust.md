@@ -123,6 +123,13 @@ body, .stApp {
   font-size: 0.8rem;
   color: #6B7280;
 }
+.full-width-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
