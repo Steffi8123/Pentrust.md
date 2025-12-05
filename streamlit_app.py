@@ -282,16 +282,11 @@ with top_cols[1]:
 input_col, summary_col = st.columns([2, 1])
 
 with input_col:
-    urls_text = st.text_area(
-        "Pages to review",
-        placeholder=(
-            "Example:\n"
-            "https://hospital-portal.com/patient-login\n"
-            "https://hospital-portal.com/medication-refill\n"
-            "Discharge summary SMS copy"
-        ),
-        height=120,
-    )
+urls_text = st.text_area(
+    "Pages to review",
+    placeholder="Paste links here…",
+    height=120,
+)
     run_btn = st.button("Run analysis")
 
 with summary_col:
