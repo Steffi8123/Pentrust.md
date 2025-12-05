@@ -1,17 +1,17 @@
 import streamlit as st
 import pandas as pd
 import random
-import textwrap
+import hashlib
+from datetime import datetime
 
 # -----------------------------
-# Brand Colors (your palette)
+# Brand tokens
 # -----------------------------
-PRIMARY = "#F9D342"     # warm yellow
-SECONDARY = "#F59E0B"   # amber
-ACCENT = "#2563EB"      # blue
-
-BG = "#FFFFFF"
-BG_SOFT = "#F8FAFC"
+PRIMARY = "#F9D342"
+SECONDARY = "#F59E0B"
+ACCENT = "#2563EB"
+BG = "#F7F8FB"
+CARD_BG = "#FFFFFF"
 TEXT = "#0F172A"
 MUTED = "#6B7280"
 BORDER = "#E5E7EB"
@@ -22,607 +22,592 @@ BORDER = "#E5E7EB"
 st.set_page_config(
     page_title="PenTrust – Healthcare Content Clarity Analyzer",
     page_icon="✏️",
-    layout="wide",
+    layout="wide"
 )
 
 # -----------------------------
-# Global styles
+# CSS (light, clean, card-based)
 # -----------------------------
 st.markdown(
     f"""
     <style>
-    /* App background */
-    .stApp {{
-        background: {BG};
-        color: {TEXT};
-    }}
+        .stApp {{
+            background: {BG};
+            color: {TEXT};
+        }}
 
-    /* Remove default top padding a bit tighter */
-    .block-container {{
-        padding-top: 1.4rem;
-        padding-bottom: 2.5rem;
-    }}
+        /* Sidebar */
+        section[data-testid="stSidebar"] {{
+            background: linear-gradient(180deg, {PRIMARY} 0%, #FCE57A 100%);
+            border-right: 1px solid rgba(0,0,0,0.04);
+        }}
+        section[data-testid="stSidebar"] * {{
+            color: {TEXT} !important;
+        }}
 
-    /* Sidebar */
-    section[data-testid="stSidebar"] {{
-        background: linear-gradient(180deg, {PRIMARY} 0%, #FDE68A 100%);
-        border-right: 1px solid rgba(0,0,0,0.06);
-    }}
+        /* Input outline clarity */
+        textarea {{
+            border: 1.5px solid {BORDER} !important;
+            border-radius: 12px !important;
+        }}
 
-    /* Sidebar title area */
-    .sidebar-brand {{
-        font-size: 22px;
-        font-weight: 800;
-        color: #111827;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 8px 4px 2px 4px;
-    }}
-    .sidebar-sub {{
-        font-size: 12px;
-        color: #1F2937;
-        opacity: 0.9;
-        margin-top: -2px;
-        padding-left: 4px;
-    }}
+        /* Button styling */
+        .stButton>button {{
+            background: {TEXT};
+            color: white;
+            border-radius: 12px;
+            padding: 0.6rem 1rem;
+            border: none;
+            font-weight: 600;
+        }}
+        .stButton>button:hover {{
+            background: #111827;
+        }}
 
-    /* Headlines */
-    .section-title {{
-        font-size: 34px;
-        font-weight: 800;
-        letter-spacing: -0.03em;
-        margin-bottom: 2px;
-        color: {TEXT};
-    }}
-    .section-sub {{
-        font-size: 15px;
-        color: {MUTED};
-        margin-bottom: 18px;
-    }}
+        /* Card styles */
+        .pt-card {{
+            background: {CARD_BG};
+            border: 1px solid {BORDER};
+            border-radius: 18px;
+            padding: 18px 20px;
+            box-shadow: 0 6px 18px rgba(2, 6, 23, 0.06);
+        }}
 
-    /* Input label */
-    div[data-testid="stTextArea"] label {{
-        font-weight: 700 !important;
-        color: {TEXT} !important;
-    }}
+        .pt-metric {{
+            border-radius: 18px;
+            padding: 22px 22px;
+            border: 1px solid {BORDER};
+            background: {CARD_BG};
+            box-shadow: 0 6px 18px rgba(2, 6, 23, 0.06);
+            min-height: 140px;
+        }}
+        .pt-metric.primary {{
+            background: linear-gradient(135deg, {PRIMARY} 0%, #FFECA0 100%);
+        }}
+        .pt-metric.blue {{
+            background: linear-gradient(135deg, #DBEAFE 0%, #C7D2FE 100%);
+        }}
+        .pt-metric.soft {{
+            background: #FFF7E6;
+        }}
 
-    /* Text area outline + placeholder */
-    div[data-testid="stTextArea"] textarea {{
-        border: 1.5px solid {BORDER} !important;
-        border-radius: 12px !important;
-        background: #FFFFFF !important;
-        padding: 12px 12px !important;
-        font-size: 14px !important;
-        color: #111827 !important;
-        box-shadow: 0 6px 14px rgba(15,23,42,0.04) !important;
-    }}
-    div[data-testid="stTextArea"] textarea:focus {{
-        border: 2px solid {ACCENT} !important;
-        box-shadow: 0 0 0 3px rgba(37,99,235,0.15) !important;
-        outline: none !important;
-    }}
-    div[data-testid="stTextArea"] textarea::placeholder {{
-        color: #9CA3AF !important;
-    }}
+        .pt-metric-title {{
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: {TEXT};
+            margin-bottom: 6px;
+        }}
+        .pt-metric-value {{
+            font-size: 2.4rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin: 0;
+            color: {TEXT};
+        }}
+        .pt-metric-sub {{
+            font-size: 0.95rem;
+            color: {MUTED};
+            margin-top: 6px;
+        }}
 
-    /* Primary button */
-    .stButton > button {{
-        background: {ACCENT};
-        color: white;
-        font-weight: 700;
-        border-radius: 12px;
-        border: none;
-        padding: 0.65rem 1.1rem;
-        box-shadow: 0 8px 18px rgba(37,99,235,0.18);
-        transition: 0.15s ease;
-    }}
-    .stButton > button:hover {{
-        transform: translateY(-1px);
-        filter: brightness(0.98);
-    }}
+        .pt-section-title {{
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin-bottom: 6px;
+        }}
 
-    /* Metric cards */
-    .metric-card {{
-        border-radius: 18px;
-        padding: 18px 20px;
-        background: white;
-        border: 1px solid {BORDER};
-        box-shadow: 0 10px 22px rgba(15,23,42,0.06);
-        margin-bottom: 14px;
-    }}
-    .metric-label {{
-        font-size: 14px;
-        color: {MUTED};
-        font-weight: 600;
-    }}
-    .metric-value {{
-        font-size: 40px;
-        font-weight: 800;
-        letter-spacing: -0.03em;
-        margin-top: 2px;
-        color: {TEXT};
-    }}
-    .metric-delta {{
-        font-size: 12px;
-        color: {MUTED};
-        margin-top: 2px;
-    }}
+        .pt-caption {{
+            color: {MUTED};
+            font-size: 0.98rem;
+        }}
 
-    /* Soft cards */
-    .soft-yellow {{
-        background: linear-gradient(165deg, {PRIMARY} 0%, #FDE68A 100%);
-        border: 1px solid rgba(0,0,0,0.04);
-    }}
-    .soft-blue {{
-        background: linear-gradient(165deg, #DBEAFE 0%, #E0F2FE 100%);
-        border: 1px solid rgba(0,0,0,0.04);
-    }}
-    .soft-cream {{
-        background: #FFF7ED;
-    }}
+        .pt-pill {{
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            background: #EEF2FF;
+            color: {TEXT};
+            border: 1px solid {BORDER};
+        }}
 
-    /* Right rail panels */
-    .rail-box {{
-        border-radius: 14px;
-        padding: 12px 14px;
-        background: white;
-        border: 1px solid {BORDER};
-        margin-bottom: 10px;
-    }}
-    .rail-bad {{
-        border-left: 4px solid {SECONDARY};
-    }}
-    .rail-good {{
-        border-left: 4px solid #22C55E;
-    }}
-
-    /* Analysis cards */
-    .analysis-card {{
-        border-radius: 16px;
-        padding: 18px 18px 12px 18px;
-        background: white;
-        border: 1px solid {BORDER};
-        box-shadow: 0 8px 18px rgba(15,23,42,0.05);
-        margin-bottom: 14px;
-    }}
-    .analysis-title {{
-        font-size: 18px;
-        font-weight: 800;
-        margin-bottom: 6px;
-    }}
-    .analysis-meta {{
-        font-size: 12px;
-        color: {MUTED};
-        margin-bottom: 10px;
-    }}
-
-    /* Problem -> Fix blocks */
-    .pf-row {{
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-        margin-top: 8px;
-    }}
-    .pf-box {{
-        border-radius: 12px;
-        padding: 12px 12px 10px 12px;
-        background: {BG_SOFT};
-        border: 1px solid {BORDER};
-    }}
-    .pf-label {{
-        font-size: 11px;
-        font-weight: 800;
-        letter-spacing: 0.02em;
-        color: {MUTED};
-        margin-bottom: 6px;
-        text-transform: uppercase;
-    }}
-    .pf-text {{
-        font-size: 13.5px;
-        color: {TEXT};
-    }}
-
-    /* Small pill */
-    .pill {{
-        display: inline-block;
-        padding: 4px 8px;
-        border-radius: 999px;
-        font-size: 10.5px;
-        font-weight: 800;
-        background: #EEF2FF;
-        color: #1D4ED8;
-        margin-left: 6px;
-    }}
+        /* Reduce default top padding feel */
+        .block-container {{
+            padding-top: 1.4rem;
+        }}
     </style>
     """,
-    unsafe_allow_html=True,
+    unsafe_allow_html=True
 )
 
 # -----------------------------
-# Data + fake analysis engine
+# Utilities
 # -----------------------------
-def parse_urls(raw: str):
-    lines = [l.strip() for l in raw.split("\n") if l.strip()]
-    # allow URLs or page labels
+def normalize_urls(raw: str):
+    if not raw:
+        return []
+    lines = [l.strip() for l in raw.splitlines()]
+    lines = [l for l in lines if l]
+    # Allow simple labels too, but treat as "pages"
     return lines
 
-def fake_analyze(label: str):
-    # Scores are directional / demo-ready
-    clarity = random.randint(58, 92)
-    next_steps = random.randint(55, 90)
-    wcag = random.randint(60, 92)
+def stable_seed(text: str) -> int:
+    h = hashlib.md5(text.encode("utf-8")).hexdigest()
+    return int(h[:8], 16)
 
-    # Candidate problem bank aligned to your tool framing
-    possible_issues = [
-        "Next steps are unclear after key actions.",
-        "Instructions are too dense for quick scanning.",
-        "Tone feels high-stakes without clear reassurance.",
-        "WCAG risk signals: missing alt text / contrast concerns.",
-        "Terminology shifts across the flow (inconsistent labels).",
+def mock_analysis_for_url(url: str):
+    rnd = random.Random(stable_seed(url))
+
+    # Scores intentionally not all perfect (so you can demo problems)
+    clarity = rnd.randint(58, 82)
+    next_steps = rnd.randint(52, 80)
+    trust = rnd.randint(55, 85)
+    accessibility = rnd.randint(48, 78)
+
+    # Pick 2 primary issues to show on dashboard
+    issue_pool = [
+        ("Dense instructions", "Long paragraphs reduce scanability in critical flows."),
+        ("Unclear next steps", "Confirmation copy doesn’t specify the user's next action."),
+        ("Weak micro trust", "Lack of brief reassurance near sensitive content."),
+        ("Readability mismatch", "Reading level may be high for broad patient audiences."),
+        ("Accessibility gaps", "Content structure may not support assistive scanning.")
     ]
+    rnd.shuffle(issue_pool)
+    top_issues = issue_pool[:2]
 
-    issues = []
-    if clarity < 75:
-        issues.append("Instructions are too dense for quick scanning.")
-    if next_steps < 75:
-        issues.append("Next steps are unclear after key actions.")
-    if wcag < 80:
-        issues.append("WCAG risk signals: missing alt text / contrast concerns.")
-
-    for i in possible_issues:
-        if len(issues) >= 2:
-            break
-        if i not in issues:
-            issues.append(i)
-
-    issues = issues[:2]
-
-    # Map each issue to a clear fix + example
-    fix_map = {
-        "Next steps are unclear after key actions.": {
-            "fix": "Add explicit next-step microcopy and a single primary CTA. Use short, action-first language.",
-            "before": "Your request was received. We’ll review it.",
-            "after": "Request received. **Next:** Upload your insurance card to continue.",
-        },
-        "Instructions are too dense for quick scanning.": {
-            "fix": "Break long paragraphs into 2–3 bullet steps. Surface the 1-line summary first.",
-            "before": "To complete your appointment, please review the following detailed instructions...",
-            "after": "**Book in 3 steps:** Choose date → Select provider → Confirm details.",
-        },
-        "Tone feels high-stakes without clear reassurance.": {
-            "fix": "Reduce alarm-heavy phrases. Add brief reassurance and plain-language context.",
-            "before": "Failure to act may result in serious complications.",
-            "after": "Acting early helps reduce risk. If you’re unsure, we’ll guide you step by step.",
-        },
-        "WCAG risk signals: missing alt text / contrast concerns.": {
-            "fix": "Audit headings, alt text, and contrast. Ensure error messages are text + not color-only.",
-            "before": "Error shown only in red text.",
-            "after": "Error with icon + text: “We couldn’t verify this field. Please re-enter your ID.”",
-        },
-        "Terminology shifts across the flow (inconsistent labels).": {
-            "fix": "Standardize labels and match user mental models. Use one term per concept.",
-            "before": "‘Visit’, ‘Session’, and ‘Appointment’ used interchangeably.",
-            "after": "Use **‘Appointment’** consistently across steps and confirmations.",
-        },
-    }
-
-    # Build detailed entries for deep analysis
-    issue_details = []
-    for i in issues:
-        meta = fix_map.get(i, {
-            "fix": "Simplify wording and add a clear next action.",
-            "before": "Original copy example.",
-            "after": "Improved copy example.",
-        })
-        issue_details.append({
-            "issue": i,
-            "fix": meta["fix"],
-            "before": meta["before"],
-            "after": meta["after"],
-        })
+    # Trend data for clarity chart
+    trend = [max(40, min(90, clarity + rnd.randint(-8, 8))) for _ in range(8)]
 
     return {
-        "label": label,
-        "clarity": clarity,
-        "next_steps": next_steps,
-        "wcag": wcag,
-        "issues": issues,
-        "issue_details": issue_details,
+        "scores": {
+            "Clarity": clarity,
+            "Next-step guidance": next_steps,
+            "Trust signals": trust,
+            "Accessibility-aware writing": accessibility
+        },
+        "top_issues": top_issues,
+        "trend": trend
     }
+
+def build_detailed_table(analyses: dict):
+    rows = []
+    for url, a in analyses.items():
+        s = a["scores"]
+        issues = ", ".join([i[0] for i in a["top_issues"]])
+        # Simple risk label for presentation clarity
+        risk = "High" if min(s.values()) < 55 else ("Medium" if min(s.values()) < 65 else "Low")
+
+        rows.append({
+            "Page / label": url,
+            "Clarity score": s["Clarity"],
+            "Next-step score": s["Next-step guidance"],
+            "Trust score": s["Trust signals"],
+            "Accessibility-aware score": s["Accessibility-aware writing"],
+            "Top risk signals": issues,
+            "Risk level": risk
+        })
+    if not rows:
+        return pd.DataFrame(columns=[
+            "Page / label", "Clarity score", "Next-step score", "Trust score",
+            "Accessibility-aware score", "Top risk signals", "Risk level"
+        ])
+    return pd.DataFrame(rows)
+
+def render_metric_card(title, value, sub, style_class=""):
+    st.markdown(
+        f"""
+        <div class="pt-metric {style_class}">
+            <div class="pt-metric-title">{title}</div>
+            <div class="pt-metric-value">{value}</div>
+            <div class="pt-metric-sub">{sub}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+def render_issue_list(issues):
+    for title, desc in issues:
+        st.markdown(
+            f"""
+            <div class="pt-card" style="margin-bottom: 10px;">
+                <span class="pt-pill">Issue</span>
+                <div style="font-weight: 700; font-size: 1.05rem; margin-top: 6px;">⚠️ {title}</div>
+                <div class="pt-caption" style="margin-top: 2px;">{desc}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 # -----------------------------
 # Session state
 # -----------------------------
-if "pages" not in st.session_state:
-    st.session_state.pages = []
-if "selected_page" not in st.session_state:
-    st.session_state.selected_page = None
+if "analyses" not in st.session_state:
+    st.session_state.analyses = {}  # url -> analysis dict
+
+if "urls" not in st.session_state:
+    st.session_state.urls = []
+
+if "selected_url" not in st.session_state:
+    st.session_state.selected_url = None
 
 # -----------------------------
-# Sidebar
+# Sidebar nav (ONLY 2)
 # -----------------------------
-with st.sidebar:
-    st.markdown(
-        """
-        <div class="sidebar-brand">✏️ PenTrust</div>
-        <div class="sidebar-sub">Healthcare content clarity analyzer</div>
-        """,
-        unsafe_allow_html=True,
-    )
+st.sidebar.markdown("## ✏️ PenTrust")
+page = st.sidebar.radio(
+    "Navigation",
+    ["Dashboard", "Deep Analysis"],
+    label_visibility="collapsed"
+)
 
-    view = st.radio(
-        "Navigation",
-        ["Dashboard", "Deep analysis"],
-        label_visibility="collapsed",
-    )
+st.sidebar.markdown("---")
+st.sidebar.markdown(
+    "PenTrust is a presentation-friendly interface for an AI-assisted content clarity analyzer "
+    "for healthcare UX and content teams."
+)
 
 # -----------------------------
-# Top input area (global)
+# Header (top area)
 # -----------------------------
 st.markdown(
-    "<div class='section-title'>PenTrust – Healthcare Content Clarity Analyzer</div>"
-    "<div class='section-sub'>Paste URLs or page labels to simulate how an AI-assisted content audit can surface clarity, next-step, and accessibility risks.</div>",
-    unsafe_allow_html=True,
+    """
+    <div class="pt-card">
+        <div class="pt-section-title">PenTrust – Healthcare Content Clarity Analyzer</div>
+        <div class="pt-caption">
+            Paste multiple URLs or page labels to simulate how an AI content audit could surface clarity,
+            next-step, trust, and accessibility-aware writing risks.
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
 )
 
-urls_text = st.text_area(
-    "Pages to review",
-    placeholder="Paste links here…",
-    height=120,
-)
+st.write("")
 
-col_a, col_b, col_c = st.columns([0.18, 0.62, 0.20])
-with col_a:
-    run_btn = st.button("Run analysis")
+# -----------------------------
+# Input block (shared)
+# -----------------------------
+with st.container():
+    left, right = st.columns([3, 1])
 
-with col_c:
-    if st.session_state.pages:
-        st.markdown(
-            f"<span class='pill'>Last run: {len(st.session_state.pages)} pages</span>",
-            unsafe_allow_html=True,
+    with left:
+        raw = st.text_area(
+            "Pages to review",
+            value="",
+            height=110,
+            placeholder="Paste the link(s) here — one per line",
+            label_visibility="visible"
         )
 
-if run_btn:
-    inputs = parse_urls(urls_text)
-    if not inputs:
-        st.warning("Paste at least one URL or page label.")
-    else:
-        st.session_state.pages = [fake_analyze(i) for i in inputs]
-        st.session_state.selected_page = st.session_state.pages[0]["label"]
-        st.success("Analysis generated.")
+    with right:
+        st.write("")
+        run = st.button("Run analysis", use_container_width=True)
+        st.caption("Demo logic generates realistic signals for presentation use.")
 
-pages = st.session_state.pages
+    if run:
+        urls = normalize_urls(raw)
+        st.session_state.urls = urls
+
+        analyses = {}
+        for u in urls:
+            analyses[u] = mock_analysis_for_url(u)
+
+        st.session_state.analyses = analyses
+        st.session_state.selected_url = urls[0] if urls else None
+
+# If we already have urls but the user didn't press run this time
+if not st.session_state.selected_url and st.session_state.urls:
+    st.session_state.selected_url = st.session_state.urls[0]
+
+analyses = st.session_state.analyses
+urls = st.session_state.urls
 
 # -----------------------------
-# Helpers
+# URL selector
 # -----------------------------
-def build_df(pages_list):
-    return pd.DataFrame(
-        [
-            {
-                "Page / message": p["label"],
-                "Clarity score": p["clarity"],
-                "Next-step clarity": p["next_steps"],
-                "WCAG signal": p["wcag"],
-                "Top issues (2)": " • ".join(p["issues"]),
-            }
-            for p in pages_list
-        ]
+if urls:
+    st.markdown("##### Select a page")
+    selected = st.selectbox(
+        "Select a page",
+        options=urls,
+        index=urls.index(st.session_state.selected_url) if st.session_state.selected_url in urls else 0,
+        label_visibility="collapsed"
     )
+    st.session_state.selected_url = selected
+
+selected_url = st.session_state.selected_url
+selected_analysis = analyses.get(selected_url) if selected_url else None
 
 # -----------------------------
-# DASHBOARD VIEW (Problems)
+# DASHBOARD PAGE
 # -----------------------------
-if view == "Dashboard":
-    if not pages:
-        st.info("No results yet. Add pages above and click **Run analysis**.")
+if page == "Dashboard":
+    if not urls:
+        st.info("Add pages in **Pages to review** and click **Run analysis** to generate the dashboard.")
     else:
-        df = build_df(pages)
+        # Layout similar to your reference:
+        # left main area + right notifications/activities
+        main, side = st.columns([3.2, 1.2])
 
-        # Aggregate
-        avg_clarity = int(df["Clarity score"].mean())
-        avg_next = int(df["Next-step clarity"].mean())
-        avg_wcag = int(df["WCAG signal"].mean())
-        low_clarity_pages = int((df["Clarity score"] < 75).sum())
-
-        left, center, right = st.columns([1.1, 1.1, 0.9])
-
-        # LEFT rail cards (match your layout)
-        with left:
+        with main:
             st.markdown(
                 f"""
-                <div class="metric-card soft-yellow">
-                    <div class="metric-label">Avg clarity score</div>
-                    <div class="metric-value">{avg_clarity}</div>
-                    <div class="metric-delta">Pages below 75: {low_clarity_pages}</div>
+                <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom: 8px;">
+                    <div class="pt-section-title">Dashboard</div>
+                    <div class="pt-caption">Today</div>
                 </div>
                 """,
-                unsafe_allow_html=True,
+                unsafe_allow_html=True
             )
 
-            st.markdown(
-                f"""
-                <div class="metric-card soft-blue">
-                    <div class="metric-label">Avg next-step clarity</div>
-                    <div class="metric-value">{avg_next}</div>
-                    <div class="metric-delta">Signals missing handoffs</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            # Metric cards (2x2)
+            c1, c2 = st.columns(2)
+            c3, c4 = st.columns(2)
 
-            st.markdown(
-                f"""
-                <div class="metric-card soft-cream">
-                    <div class="metric-label">Avg WCAG signal</div>
-                    <div class="metric-value">{avg_wcag}</div>
-                    <div class="metric-delta">Directional indicator for review</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            s = selected_analysis["scores"]
 
-        # CENTER cards + clarity chart
-        with center:
-            needs_review = max(1, len(pages) // 2)
-            flagged_sections = random.randint(3, 12)
+            with c1:
+                render_metric_card(
+                    "Clarity risk signals found",
+                    f"{max(2, 6 - (s['Clarity'] // 15))}",
+                    "High-impact copy friction surfaced",
+                    "primary"
+                )
+            with c2:
+                render_metric_card(
+                    "Next-step gaps flagged",
+                    f"{max(1, 5 - (s['Next-step guidance'] // 18))}",
+                    "Missing microcopy patterns",
+                    "blue"
+                )
+            with c3:
+                render_metric_card(
+                    "Trust cues needing reinforcement",
+                    f"{max(1, 5 - (s['Trust signals'] // 18))}",
+                    "Sensitive moments identified",
+                    "soft"
+                )
+            with c4:
+                render_metric_card(
+                    "Accessibility-aware writing risks",
+                    f"{max(1, 6 - (s['Accessibility-aware writing'] // 16))}",
+                    "Structure & readability warnings",
+                    "blue"
+                )
 
-            st.markdown(
-                f"""
-                <div class="metric-card soft-blue">
-                    <div class="metric-label">Pages needing review</div>
-                    <div class="metric-value">{needs_review}</div>
-                    <div class="metric-delta">Based on issue signals</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            st.write("")
 
-            st.markdown(
-                f"""
-                <div class="metric-card soft-blue">
-                    <div class="metric-label">Flagged content sections</div>
-                    <div class="metric-value">{flagged_sections}</div>
-                    <div class="metric-delta">Clarity + guidance + accessibility</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            # Clarity score trend chart
+            st.markdown("#### Clarity Score Trend")
+            trend_df = pd.DataFrame({"Clarity score": selected_analysis["trend"]})
+            st.bar_chart(trend_df)
 
-            st.caption("Clarity score trend")
-            chart_df = df[["Page / message", "Clarity score"]].set_index("Page / message")
-            st.bar_chart(chart_df, height=220)
+            st.write("")
 
-        # RIGHT Notifications + Activities
-        with right:
-            st.markdown("### Notifications")
+            # "Problems" area (explicitly for your presentation)
+            st.markdown("#### Key problems detected on this page")
+            render_issue_list(selected_analysis["top_issues"])
+
+        with side:
             st.markdown(
                 """
-                <div class="rail-box rail-bad">⚠️ Clarity risk detected on at least one page</div>
-                <div class="rail-box rail-bad">⚠️ Next-step guidance may be missing</div>
-                <div class="rail-box rail-bad">⚠️ Accessibility signals need review</div>
+                <div class="pt-card">
+                    <div class="pt-section-title" style="font-size:1.3rem;">Notifications</div>
+                    <div style="margin-top:12px;">
+                        <div style="font-weight:600;">⚠️ Clarity alert detected</div>
+                        <div class="pt-caption">Just now</div>
+                    </div>
+                    <div style="margin-top:14px;">
+                        <div style="font-weight:600;">👥 New page added to review</div>
+                        <div class="pt-caption">A few minutes ago</div>
+                    </div>
+                    <div style="margin-top:14px;">
+                        <div style="font-weight:600;">✅ Analysis complete</div>
+                        <div class="pt-caption">Moments ago</div>
+                    </div>
+                </div>
                 """,
-                unsafe_allow_html=True,
+                unsafe_allow_html=True
             )
 
-            st.markdown("### Activities")
+            st.write("")
+
             st.markdown(
                 """
-                <div class="rail-box rail-good">✅ Analysis completed</div>
-                <div class="rail-box">📝 Detailed fixes available in Deep analysis</div>
+                <div class="pt-card">
+                    <div class="pt-section-title" style="font-size:1.3rem;">Activities</div>
+                    <div style="margin-top:12px;">
+                        <div style="font-weight:600;">📄 Report previewed</div>
+                        <div class="pt-caption">Just now</div>
+                    </div>
+                    <div style="margin-top:14px;">
+                        <div style="font-weight:600;">🧭 Page switched</div>
+                        <div class="pt-caption">Live selection enabled</div>
+                    </div>
+                </div>
                 """,
-                unsafe_allow_html=True,
+                unsafe_allow_html=True
             )
 
-        st.markdown("<br/>", unsafe_allow_html=True)
-
-        # BIG TABLE
-        st.markdown("#### Page-level summary")
-        st.dataframe(df, use_container_width=True, hide_index=True)
-
-# -----------------------------
-# DEEP ANALYSIS VIEW (Solutions)
-# -----------------------------
-if view == "Deep analysis":
-    if not pages:
-        st.info("Run an analysis first to unlock deep analysis.")
-    else:
-        labels = [p["label"] for p in pages]
-        selected = st.selectbox(
-            "Select a page to review deeply",
-            labels,
-            index=0 if st.session_state.selected_page is None else labels.index(st.session_state.selected_page),
+        st.write("")
+        st.markdown("### Detailed audit table")
+        st.caption("This is your big table for grading + screenshots.")
+        st.dataframe(
+            build_detailed_table(analyses),
+            use_container_width=True,
+            hide_index=True
         )
-        st.session_state.selected_page = selected
 
-        page = next(p for p in pages if p["label"] == selected)
+# -----------------------------
+# DEEP ANALYSIS PAGE (Solutions)
+# -----------------------------
+elif page == "Deep Analysis":
+    if not urls:
+        st.info("Add pages in **Pages to review** and click **Run analysis** to generate deep analysis.")
+    else:
+        st.markdown(
+            f"""
+            <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom: 8px;">
+                <div class="pt-section-title">Deep Analysis</div>
+                <div class="pt-caption">Solutions & rewrite guidance</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
         st.markdown(
             f"""
-            <div class="analysis-card">
-                <div class="analysis-title">{page["label"]}</div>
-                <div class="analysis-meta">
-                    Clarity: <b>{page["clarity"]}</b> &nbsp;|&nbsp;
-                    Next-step clarity: <b>{page["next_steps"]}</b> &nbsp;|&nbsp;
-                    WCAG signal: <b>{page["wcag"]}</b>
-                </div>
+            <div class="pt-card">
+                <div style="font-weight:700;">Page under review</div>
+                <div class="pt-caption">{selected_url}</div>
             </div>
             """,
-            unsafe_allow_html=True,
+            unsafe_allow_html=True
         )
 
-        st.markdown("### Key issues and fixes")
+        st.write("")
 
-        for idx, d in enumerate(page["issue_details"], start=1):
-            issue = d["issue"]
-            fix = d["fix"]
-            before = d["before"]
-            after = d["after"]
+        # We show solutions that map to the dashboard issues,
+        # without any HTML/code snippets.
+        issues = selected_analysis["top_issues"]
+        issue_titles = [i[0] for i in issues]
 
-            st.markdown(
-                f"""
-                <div class="analysis-card">
-                    <div class="analysis-title">{idx}. {issue}</div>
-                    <div class="analysis-meta">This section shows a compact “problem → fix → example” narrative for presentation use.</div>
+        # 1) Dense instructions
+        if "Dense instructions" in issue_titles:
+            st.markdown("### 1. Instructions are too dense for quick scanning")
+            st.caption("Problem → Fix → Before/After for presentation use.")
 
-                    <div class="pf-row">
-                        <div class="pf-box">
-                            <div class="pf-label">⚠️ Problem signal</div>
-                            <div class="pf-text">{issue}</div>
-                        </div>
-                        <div class="pf-box">
-                            <div class="pf-label">✅ Suggested fix</div>
-                            <div class="pf-text">{fix}</div>
-                        </div>
-                    </div>
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("**⚠️ Problem signal**")
+                st.info("Actions are embedded in long paragraphs, lowering scan and completion rates.")
+            with col2:
+                st.markdown("**✅ Suggested fix**")
+                st.success("Lead with a 1-line summary, then 2–3 short steps. Add headings and whitespace.")
 
-                    <div class="pf-row">
-                        <div class="pf-box">
-                            <div class="pf-label">Before (sample copy)</div>
-                            <div class="pf-text">{before}</div>
-                        </div>
-                        <div class="pf-box">
-                            <div class="pf-label">After (clearer version)</div>
-                            <div class="pf-text">{after}</div>
-                        </div>
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
+            st.markdown("**Before (sample copy)**")
+            st.write(
+                "To complete your appointment request, please review the following detailed instructions, "
+                "ensure you have your insurance information ready, and confirm your provider preference before proceeding."
             )
 
-        st.markdown("### Expanded recommendations (presentation-friendly)")
+            st.markdown("**After (clearer version)**")
+            st.write(
+                "**Book in 3 steps:** 1) Choose a date  2) Select a provider  3) Confirm your details. "
+                "Have your insurance card ready for step 3."
+            )
+            st.markdown("---")
 
-        bullets = []
-        if page["clarity"] < 80:
-            bullets.append("Shorten intake instructions into 2–3 scannable steps.")
-        if page["next_steps"] < 80:
-            bullets.append("Add one explicit next action after every confirmation state.")
-        if page["wcag"] < 85:
-            bullets.append("Re-check contrast and ensure errors include icon + text description.")
-        if not bullets:
-            bullets = [
-                "Refine headings for faster scanning in critical flows.",
-                "Standardize terminology across interface and help content.",
-            ]
+        # 2) Unclear next steps
+        if "Unclear next steps" in issue_titles:
+            st.markdown("### 2. Next steps are unclear after key actions")
+            st.caption("Problem → Fix → Before/After for presentation use.")
 
-        st.markdown(
-            "- " + "\n- ".join(bullets)
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("**⚠️ Problem signal**")
+                st.info("Users receive acknowledgment without instructions for what to do next.")
+            with col2:
+                st.markdown("**✅ Suggested fix**")
+                st.success("Add explicit next-step microcopy + one primary CTA + time expectation.")
+
+            st.markdown("**Before (sample copy)**")
+            st.write("Your request was received. We’ll review it.")
+
+            st.markdown("**After (clearer version)**")
+            st.write("Request received. **Next:** Upload your insurance card to continue. You’ll get an update within 24 hours.")
+            st.markdown("---")
+
+        # 3) Weak micro trust
+        if "Weak micro trust" in issue_titles:
+            st.markdown("### 3. Trust signals need reinforcement near sensitive moments")
+            st.caption("Problem → Fix → Before/After for presentation use.")
+
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("**⚠️ Problem signal**")
+                st.info("Sensitive information appears without brief reassurance or ownership cues.")
+            with col2:
+                st.markdown("**✅ Suggested fix**")
+                st.success("Add micro trust cues: “Reviewed by…”, “Last updated…”, and 1-line data reassurance.")
+
+            st.markdown("**Before (sample copy)**")
+            st.write("This information will be used to support your care.")
+
+            st.markdown("**After (clearer version)**")
+            st.write(
+                "This information supports your care. **We use it only for your treatment and service updates.** "
+                "Reviewed by the care team • Last updated this month."
+            )
+            st.markdown("---")
+
+        # 4) Readability mismatch
+        if "Readability mismatch" in issue_titles:
+            st.markdown("### 4. Readability may be too complex for broad patient use")
+            st.caption("Problem → Fix → Before/After for presentation use.")
+
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("**⚠️ Problem signal**")
+                st.info("Medical or administrative language may increase confusion and support dependence.")
+            with col2:
+                st.markdown("**✅ Suggested fix**")
+                st.success("Swap jargon for plain language and add short examples.")
+
+            st.markdown("**Before (sample copy)**")
+            st.write("Please submit the required documentation to facilitate claim adjudication.")
+
+            st.markdown("**After (clearer version)**")
+            st.write("Please upload your documents so we can process your insurance claim.")
+            st.markdown("---")
+
+        # 5) Accessibility-aware writing
+        if "Accessibility gaps" in issue_titles:
+            st.markdown("### 5. Accessibility-aware writing structure is inconsistent")
+            st.caption("Problem → Fix → Quick checklist.")
+
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("**⚠️ Problem signal**")
+                st.info("Headings, lists, and chunking may not support quick assistive scanning.")
+            with col2:
+                st.markdown("**✅ Suggested fix**")
+                st.success("Use descriptive headings, short paragraphs, and consistent list patterns.")
+
+            st.markdown("**Writer checklist**")
+            st.write(
+                "• One idea per paragraph\n"
+                "• Use numbered steps for tasks\n"
+                "• Put critical warnings first\n"
+                "• Keep labels consistent across pages\n"
+                "• Avoid multi-clause instruction sentences"
+            )
+            st.markdown("---")
+
+        st.markdown("### Detailed audit table (for your screenshots)")
+        st.dataframe(
+            build_detailed_table(analyses),
+            use_container_width=True,
+            hide_index=True
         )
-
-        # Optional: mini deep table per selected page
-        st.markdown("<br/>", unsafe_allow_html=True)
-        st.markdown("#### Issue breakdown (for notes or appendix)")
-        issue_df = pd.DataFrame(
-            [
-                {
-                    "Issue": x["issue"],
-                    "Suggested fix": x["fix"],
-                    "Before example": x["before"],
-                    "After example": x["after"],
-                }
-                for x in page["issue_details"]
-            ]
-        )
-        st.dataframe(issue_df, use_container_width=True, hide_index=True)
