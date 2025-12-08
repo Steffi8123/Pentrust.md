@@ -595,7 +595,7 @@ elif page == "Deep Analysis":
             )
             st.markdown("---")
 
-        st.markdown("### Detailed audit table (for your screenshots)")
+        st.markdown("### Detailed audit table")
         st.dataframe(
             build_detailed_table(analyses),
             use_container_width=True,
